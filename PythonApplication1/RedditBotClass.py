@@ -13,7 +13,7 @@ pwd_value = config.get('RedditConfig','pwd_string',1)
 class RedditBot:
     """initializer for accessing reddit, querying posts, etc."""
 
-    def __init__(self, init_subreddit=None):
+    def __init__(self, init_subreddit='All'):
         
         self.r = praw.Reddit(user_agent=useragent_value)
         self.r.login(username_value, pwd_value)#config?
@@ -48,7 +48,7 @@ class RedditBot:
     def Get_Submissions_Since_Last_Post(self):
         if(self.subreddit):
             last_id = self.Get_Last_Comment_ID()
-            return self.subreddit.get_top(limit=None, 
+            return self.subreddit.get_top(limit=20, 
                                           place_holder=last_id)
 
     def Get_Last_Comment_ID(self):
@@ -61,14 +61,25 @@ class RedditBot:
         submission_set = []
 
         for submission in submissions:
-            if(self.subreddit):
+            if(self.subreddit and isinstance(submission,praw.objects.Submission)):
                 if prev_submission_ids[0].count(submission.id) == 0:
                     post_date = datetime.fromtimestamp(submission.created).strftime('%Y-%m-%d %H:%M:%S')
                     dict = {'SubmissionID': unicode(submission.id), 
                             'SubmissionTitle': unicode(submission.title),
                             'Subreddit': unicode(self.subreddit),
                             'SubmissionScore': unicode(submission.score),
-                            'PostDate':post_date}
+                            'PostDate':post_date,
+                            'SubmissionType' : unicode('Submission')}
+                    submission_set.append(dict)
+            elif(self.subreddit and isinstance(submission,praw.objects.Comment)):
+                if prev_submission_ids[0].count(submission.id) == 0:
+                    post_date = datetime.fromtimestamp(submission.created).strftime('%Y-%m-%d %H:%M:%S')
+                    dict = {'SubmissionID': unicode(submission.id), 
+                            'SubmissionTitle': unicode(submission.body),
+                            'Subreddit': unicode(self.subreddit),
+                            'SubmissionScore': unicode(submission.score),
+                            'PostDate':post_date,
+                            'SubmissionType' : unicode('Comment')}
                     submission_set.append(dict)
 
         self.dAccessor.Insert_Submissions(submission_set)
